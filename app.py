@@ -1,6 +1,5 @@
 import streamlit as st
 import time
-import random
 
 # --- 1. 页面基础配置 ---
 st.set_page_config(
@@ -10,68 +9,163 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. 自定义 CSS (保持不变) ---
+# --- 2. 自定义 CSS (极简纯白风 + 去除锚点链接) ---
 st.markdown("""
 <style>
-    .stApp { background-color: #FAFAFA; font-family: 'Helvetica Neue', sans-serif; }
+    /* 全局背景设为纯白/极淡灰 */
+    .stApp {
+        background-color: #FFFFFF;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+    
+    /* 隐藏 Streamlit 默认的标题锚点链接 (去除🔗图标) */
+    .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a {
+        display: none !important;
+        pointer-events: none;
+    }
+    [data-testid="stHeaderActionElements"] {
+        display: none !important;
+    }
+    
+    /* 隐藏菜单和页脚 */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    h1, h2, h3 { color: #333; font-weight: 600; }
+    
+    /* 标题颜色 */
+    h1, h2, h3, h4 {
+        color: #2C3E50;
+        font-weight: 600;
+    }
+    
+    /* 按钮样式优化：默认极淡，Hover时浅蓝 */
     div.stButton > button {
-        background-color: #FFFFFF; color: #4A4A4A; border: 1px solid #E0E0E0;
-        border-radius: 12px; padding: 10px 24px; transition: all 0.3s ease;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        background-color: #FAFAFA;
+        color: #555;
+        border: 1px solid #EEEEEE;
+        border-radius: 12px;
+        padding: 12px 24px;
+        transition: all 0.2s ease-in-out;
+        box-shadow: none;
     }
     div.stButton > button:hover {
-        border-color: #B0C4DE; color: #2E86C1; background-color: #F0F8FF; transform: translateY(-2px);
+        border-color: #B0C4DE;
+        color: #2E86C1;
+        background-color: #F8FBFF;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
-    div.stButton > button:active { background-color: #E6F2FF; border-color: #2E86C1; }
+    
+    /* 身份卡片样式 */
     .role-card {
-        background-color: white; padding: 20px; border-radius: 15px;
-        border: 1px solid #F0F0F0; text-align: center; margin-bottom: 10px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+        background-color: #FFFFFF;
+        padding: 25px;
+        border-radius: 16px;
+        border: 1px solid #F0F0F0;
+        text-align: center;
+        margin-bottom: 15px;
+        transition: transform 0.2s;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
     }
-    .stProgress > div > div > div > div { background-color: #ADD8E6; }
-    .stTextInput > div > div > input { border-radius: 10px; border: 1px solid #E0E0E0; }
+    .role-card:hover {
+        transform: translateY(-3px);
+        border-color: #E0E0E0;
+    }
+    
+    /* 进度条颜色 (淡蓝) */
+    .stProgress > div > div > div > div {
+        background-color: #AECBFA;
+    }
+    
+    /* 输入框样式 */
+    .stTextInput > div > div > input, .stTextArea > div > div > textarea {
+        background-color: #FAFAFA;
+        border-radius: 10px;
+        border: 1px solid #EAEAEA;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. 状态管理 (已修复: 确保 questions 被初始化) ---
+# --- 3. 状态管理 ---
 if 'step' not in st.session_state:
     st.session_state.step = 0
 if 'role' not in st.session_state:
     st.session_state.role = None
 if 'answers' not in st.session_state:
     st.session_state.answers = {}
-# [关键修复] 必须初始化 questions，防止 key error
 if 'questions' not in st.session_state:
     st.session_state.questions = []
 
-# --- 4. 题目数据结构 ---
+# --- 4. 题目数据库 (100% 独立内容) ---
 QUESTIONS = {
     "public": [
-        {"type": "img_gen_ab", "title": "✨ 魔法变身测试", "desc": "上传一张照片，输入一句咒语，看看AI的魔法效果！"},
-        {"type": "choice", "title": "👀 第一眼感觉", "desc": "你觉得这个模型生成的图片色彩风格更偏向？", "options": ["清新自然 🍃", "浓郁油画 🎨", "赛博朋克 🤖", "写实摄影 📷"]},
-        {"type": "text", "title": "💭 脑洞时刻", "desc": "如果让你用这个AI生成一张图发朋友圈，你会让它画什么？"},
+        # Q1
+        {"type": "img_gen_ab", "title": "✨ Q1: 魔法变身", "desc": "这是最重要的测试！请上传一张你喜欢的照片，让AI帮你重绘风格。"},
+        # Q2
+        {"type": "choice", "title": "👀 Q2: 风格偏好", "desc": "你觉得刚才生成的图片，哪种滤镜感更强？", "options": ["胶片复古感 🎞️", "二次元动漫感 🌸", "3D皮克斯感 🧸", "真实单反感 📸"]},
+        # Q3
+        {"type": "text", "title": "💭 Q3: 脑洞时刻", "desc": "如果这个AI能帮你画表情包，你希望画一个什么内容的表情包？"},
+        # Q4
+        {"type": "slider", "title": "🤣 Q4: 好玩程度", "desc": "你觉得刚才的生成过程有趣吗？(1=无聊, 10=超好玩)"},
+        # Q5
+        {"type": "ab_static", "title": "🖼️ Q5: 壁纸选择", "desc": "如果你要选一张做手机壁纸，你会选哪张？", "img_src": ["landscape_1", "landscape_2"]},
+        # Q6
+        {"type": "choice", "title": "🤔 Q6: 图灵测试", "desc": "看这张图中的人脸，你觉得是真人还是AI生成的？", "options": ["绝对是真人 🧑", "一眼假，是AI 🤖", "很难分辨 🤔"]},
+        # Q7
+        {"type": "text", "title": "🎨 Q7: 颜色感受", "desc": "用一个词形容模型生成图片的色彩风格（例如：温暖、冷淡、鲜艳...）"},
+        # Q8
+        {"type": "choice", "title": "🚀 Q8: 等待耐心", "desc": "刚才生成图片花了约5秒，你觉得这个速度？", "options": ["太快了！⚡", "刚刚好 🍵", "有点慢 🐢", "无法忍受 😫"]},
+        # Q9
+        {"type": "slider", "title": "💰 Q9: 付费意愿", "desc": "如果这是一个手机App，你愿意为它付费吗？(0=绝不, 10=买买买)"},
+        # Q10
+        {"type": "text", "title": "📝 Q10: 最终建议", "desc": "作为大众体验官，你最希望在这个模型里增加什么功能？"}
     ],
+    
     "designer": [
-        {"type": "ab_static", "title": "🔍 材质细节观察", "desc": "作为设计师，你觉得哪张图的【玻璃光影】处理更符合物理规律？", "img_src": ["img_a", "img_b"]},
-        {"type": "slider", "title": "🎨 创意落地程度", "desc": "生成的图像是否可以直接用于商业海报草图？（1=完全不行，10=只需微调）"},
-        {"type": "text", "title": "🛠️ 工具流接入", "desc": "你希望这个模型能导出分层PSD文件吗？还是只需要PNG？"},
+        # Q1
+        {"type": "ab_static", "title": "💡 Q1: 光影逻辑", "desc": "作为设计师，请判断哪张图的【环境光遮蔽(AO)】处理更自然？", "img_src": ["shadow_a", "shadow_b"]},
+        # Q2
+        {"type": "slider", "title": "✏️ Q2: 后期空间", "desc": "生成的图像素材是否方便在PS里进行二次编辑？(1=很难抠图, 10=非常干净)"},
+        # Q3
+        {"type": "text", "title": "📂 Q3: 格式需求", "desc": "你目前的工作流中，最痛恨JPEG格式的什么缺点？希望模型输出什么格式？"},
+        # Q4
+        {"type": "choice", "title": "📐 Q4: 构图审美", "desc": "模型生成的画面构图是否符合黄金分割或三分法？", "options": ["构图完美 ✅", "重心不稳 ⚖️", "元素杂乱 😵", "主体被切断 ✂️"]},
+        # Q5
+        {"type": "img_gen_ab", "title": "✒️ Q5: 字体设计辅助", "desc": "尝试输入Prompt生成一张海报背景，看看是否留出了足够的文字排版空间。"},
+        # Q6
+        {"type": "slider", "title": "🎨 Q6: 风格一致性", "desc": "如果连续生成10张图，画风的统一程度如何？"},
+        # Q7
+        {"type": "choice", "title": "🧩 Q7: 矢量感测试", "desc": "如果Prompt要求'扁平插画'，生成的图像是否足够干净、无杂色？", "options": ["干净利落 ✨", "有噪点/伪影 🌫️", "过度拟真(不像插画) 🚫"]},
+        # Q8
+        {"type": "text", "title": "💡 Q8: 灵感激发", "desc": "这个模型是更能帮你【找灵感】还是【出成品】？为什么？"},
+        # Q9
+        {"type": "ab_static", "title": "🤲 Q9: 手部结构", "desc": "这对于设计师是大忌。哪张图的手部结构错误更少？"},
+        # Q10
+        {"type": "slider", "title": "💼 Q10: 商业落地", "desc": "你会把刚才生成的图片直接交付给甲方看吗？"}
     ],
+    
     "expert": [
-        {"type": "choice", "title": "🧠 语义对齐测试", "desc": "Prompt: '一只穿着宇航服的猫在水下骑自行车'。模型是否准确生成了所有元素？", "options": ["完美对齐 ✅", "漏了自行车 🚲", "环境不对 🌊", "伪影严重 😵"]},
-        {"type": "text", "title": "🐛 找茬模式", "desc": "请指出上一张生成图中，手部或肢体结构的逻辑错误。"},
-        {"type": "slider", "title": "⚡ 推理速度", "desc": "刚才的生成速度（Latency）在你的接受范围内吗？"},
+        # Q1
+        {"type": "choice", "title": "🧠 Q1: 语义对齐(CLIP)", "desc": "Prompt: '红色的宇航员骑着绿色的马'。是否存在属性错位（颜色反了）？", "options": ["完全正确 ✅", "颜色错位(红马绿人) ❌", "丢失物体 🌫️"]},
+        # Q2
+        {"type": "text", "title": "🐛 Q2: 伪影检测", "desc": "请仔细观察高频细节（如头发、草地），是否存在明显的平铺纹理或过度锐化？"},
+        # Q3
+        {"type": "slider", "title": "⚡ Q3: 推理延时(Latency)", "desc": "从点击到首token/出图的延迟是否满足实时交互标准？"},
+        # Q4
+        {"type": "img_gen_ab", "title": "🔧 Q4: 负面提示词测试", "desc": "输入Negative Prompt: 'nsfw, blurry'，测试模型是否严格遵守了负面约束。"},
+        # Q5
+        {"type": "choice", "title": "📉 Q5: 文本生成能力", "desc": "如果在图片中生成文字'HELLO'，模型的拼写正确率如何？", "options": ["拼写完美 🔡", "乱码/火星文 🉐", "字形扭曲 〰️"]},
+        # Q6
+        {"type": "slider", "title": "🎛️ Q6: ControlNet 兼容性", "desc": "你认为该底模对Canny/Depth等控制条件的响应灵敏度如何？"},
+        # Q7
+        {"type": "text", "title": "🌈 Q7: 动态范围", "desc": "直方图观察：图像是否存在过曝或死黑现象？灰阶过渡是否平滑？"},
+        # Q8
+        {"type": "choice", "title": "🧬 Q8: 多样性(Seed)", "desc": "固定Prompt不固定Seed，生成的Batch图像差异性如何？", "options": ["差异丰富 🎊", "千篇一律(Mode Collapse) 📉", "微小变化 🤏"]},
+        # Q9
+        {"type": "ab_static", "title": "🧱 Q9: 空间一致性", "desc": "观察这两张连续生成的室内设计图，空间透视是否逻辑自洽？"},
+        # Q10
+        {"type": "text", "title": "🛠️ Q10: 微调建议", "desc": "如果让你对该模型进行Fine-tuning，你会优先优化哪个层面的数据集？"}
     ]
 }
-
-def fill_questions(role_key):
-    base_qs = QUESTIONS[role_key].copy() # 使用 copy 防止污染原始数据
-    while len(base_qs) < 10:
-        idx = len(base_qs) + 1
-        base_qs.append({"type": "choice", "title": f"📝 测试题 #{idx}", "desc": "这是一个通用测试维度：你对图像的清晰度满意吗？", "options": ["非常满意 😍", "一般般 😐", "有待提高 🫠"]})
-    return base_qs
 
 # --- 5. 功能函数 ---
 def next_step():
@@ -80,113 +174,116 @@ def next_step():
 
 def select_role(role_name):
     st.session_state.role = role_name
-    st.session_state.questions = fill_questions(role_name)
+    st.session_state.questions = QUESTIONS[role_name]
     next_step()
 
 # --- 6. 页面渲染逻辑 ---
 
 # [PAGE 0] 身份选择页
 if st.session_state.step == 0:
-    st.markdown("<div style='text-align: center; margin-top: 50px;'><h1>👋 欢迎来到视觉实验室</h1><p style='color:gray;'>请选择最符合你的身份卡片开启体验</p></div>", unsafe_allow_html=True)
-    st.markdown("---")
+    st.markdown("<div style='text-align: center; margin-top: 60px; margin-bottom: 40px;'><h1>👋 欢迎来到视觉实验室</h1><p style='color:#888; font-size: 16px;'>请选择一张身份卡片开启体验</p></div>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown("<div class='role-card'><h2>🥑</h2><h3>大众体验官</h3></div>", unsafe_allow_html=True)
+        st.markdown("<div class='role-card'><h2>🥑</h2><h3>大众体验官</h3><p style='color:#999; font-size:13px;'>发现乐趣 / 分享生活</p></div>", unsafe_allow_html=True)
         if st.button("我是大众用户", key="btn_public", use_container_width=True):
             select_role("public")
     with col2:
-        st.markdown("<div class='role-card'><h2>🎨</h2><h3>视觉设计师</h3></div>", unsafe_allow_html=True)
+        st.markdown("<div class='role-card'><h2>🎨</h2><h3>视觉设计师</h3><p style='color:#999; font-size:13px;'>追求细节 / 商业落地</p></div>", unsafe_allow_html=True)
         if st.button("我是设计师", key="btn_designer", use_container_width=True):
             select_role("designer")
     with col3:
-        st.markdown("<div class='role-card'><h2>🤖</h2><h3>AIGC 专家</h3></div>", unsafe_allow_html=True)
+        st.markdown("<div class='role-card'><h2>🤖</h2><h3>AIGC 专家</h3><p style='color:#999; font-size:13px;'>模型评测 / 极限测试</p></div>", unsafe_allow_html=True)
         if st.button("我是AI专家", key="btn_expert", use_container_width=True):
             select_role("expert")
 
 # [PAGE 1-10] 答题页
 elif 1 <= st.session_state.step <= 10:
     
-    # [安全检查] 如果用户在答题中途刷新页面，questions 可能会变空，导致报错
-    # 此时我们强制重置回首页
+    # 安全检查：防止刷新丢失数据
     if not st.session_state.questions:
         st.warning("⚠️ 页面已刷新，请重新选择身份。")
         st.session_state.step = 0
         if st.button("返回首页"):
             st.rerun()
-        st.stop() # 停止后续代码执行
+        st.stop()
 
     q_index = st.session_state.step - 1
     current_q = st.session_state.questions[q_index]
     
-    # 进度条
+    # 顶部进度栏
     st.progress(st.session_state.step / 10)
-    st.caption(f"Question {st.session_state.step} / 10")
+    st.markdown(f"<p style='text-align:right; color:#AAA; font-size:12px;'>进度: {st.session_state.step}/10</p>", unsafe_allow_html=True)
     
+    # 题目展示
     st.markdown(f"### {current_q['title']}")
-    st.markdown(f"{current_q['desc']}")
+    st.markdown(f"<p style='color:#666; font-size:16px; margin-bottom:30px;'>{current_q['desc']}</p>", unsafe_allow_html=True)
     
-    # 类型1：图生图 + Prompt -> A/B 测试
+    # --- 组件渲染 ---
+    
+    # 1. 图像生成 + A/B测试
     if current_q['type'] == 'img_gen_ab':
-        uploaded_file = st.file_uploader("上传一张参考图 (可选)", type=['png', 'jpg'])
-        prompt = st.text_input("输入你的Prompt (咒语)", placeholder="例如：把这张图变成梵高风格的油画...")
+        uploaded_file = st.file_uploader("📂 上传参考图 (可选)", type=['png', 'jpg'], key=f"up_{q_index}")
+        prompt = st.text_input("✨ 输入 Prompt", placeholder="在此输入你的创意...", key=f"in_{q_index}")
         
         if prompt:
-            # 使用 session_state 记录生成状态，防止点击按钮后页面刷新重置
             if f"gen_done_{q_index}" not in st.session_state:
-                 if st.button("✨ 开始生成 (模拟)", use_container_width=True):
-                    with st.spinner('AI 正在挥洒笔墨...'):
-                        time.sleep(1.5)
+                 if st.button("🚀 开始生成", use_container_width=True, key=f"gen_{q_index}"):
+                    with st.spinner('🎨 AI 正在绘制...'):
+                        time.sleep(1.5) # 模拟
                     st.session_state[f"gen_done_{q_index}"] = True
                     st.rerun()
             
             if st.session_state.get(f"gen_done_{q_index}"):
-                st.success("生成完毕！请选择你更喜欢的一张：")
+                st.success("生成完成！请选择：")
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.image("https://placehold.co/400x400/EEE/31343C?text=Model+A", caption="模型 A")
-                    if st.button("❤️ 喜欢 A", key=f"q{q_index}_a", use_container_width=True):
+                    st.image("https://placehold.co/400x400/F5F5F5/CCC?text=Model+A", caption="模型 A")
+                    if st.button("❤️ 选 A", key=f"qa_{q_index}", use_container_width=True):
                         st.session_state.answers[f"q{q_index}"] = "Model A"
                         next_step()
                 with c2:
-                    st.image("https://placehold.co/400x400/EEE/31343C?text=Model+B", caption="模型 B")
-                    if st.button("❤️ 喜欢 B", key=f"q{q_index}_b", use_container_width=True):
+                    st.image("https://placehold.co/400x400/F5F5F5/CCC?text=Model+B", caption="模型 B")
+                    if st.button("❤️ 选 B", key=f"qb_{q_index}", use_container_width=True):
                         st.session_state.answers[f"q{q_index}"] = "Model B"
                         next_step()
-                if st.button("🤷 差不多 / 都不行", key=f"q{q_index}_tie"):
+                if st.button("🤷 都不太行 / 差不多", key=f"tie_{q_index}", use_container_width=True):
                     st.session_state.answers[f"q{q_index}"] = "Tie"
                     next_step()
 
-    # 类型2：固定单选题
+    # 2. 选择题
     elif current_q['type'] == 'choice':
-        choice = st.radio("请选择:", current_q['options'], index=None)
+        choice = st.radio("请选择:", current_q['options'], index=None, key=f"radio_{q_index}")
         if choice:
-            if st.button("确认并继续 ➡️", key=f"btn_choice_{q_index}"):
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("确认提交 ➡️", key=f"btn_c_{q_index}"):
                 st.session_state.answers[f"q{q_index}"] = choice
                 next_step()
 
-    # 类型3：文本开放题
+    # 3. 文本题
     elif current_q['type'] == 'text':
-        txt = st.text_area("你的看法:", height=100, key=f"txt_{q_index}")
-        if st.button("提交 ➡️", key=f"btn_text_{q_index}") and txt:
+        txt = st.text_area("✍️ 你的回答:", height=100, key=f"txt_{q_index}")
+        if st.button("提交 ➡️", key=f"btn_t_{q_index}") and txt:
             st.session_state.answers[f"q{q_index}"] = txt
             next_step()
 
-    # 类型4：滑块打分
+    # 4. 滑块题
     elif current_q['type'] == 'slider':
-        score = st.slider("拖动滑块打分", 0, 10, 5, key=f"slider_{q_index}")
-        if st.button("确认评分 ➡️", key=f"btn_slider_{q_index}"):
+        score = st.slider("拖动滑块打分", 0, 10, 5, key=f"sl_{q_index}")
+        st.markdown(f"<p style='text-align:center; font-weight:bold; color:#2E86C1'>{score} 分</p>", unsafe_allow_html=True)
+        if st.button("确认评分 ➡️", key=f"btn_s_{q_index}"):
             st.session_state.answers[f"q{q_index}"] = score
             next_step()
 
-    # 类型5：静态A/B测试
+    # 5. 静态图片对比
     elif current_q['type'] == 'ab_static':
         c1, c2 = st.columns(2)
         with c1:
-            st.info("🖼️ 方案 A (模拟图)")
+            st.image("https://placehold.co/400x300/F5F5F5/CCC?text=Image+A", caption="方案 A")
         with c2:
-            st.info("🖼️ 方案 B (模拟图)")
-        sel = st.radio("你的选择是？", ["方案 A 更好", "方案 B 更好", "无法判断"], key=f"radio_ab_{q_index}")
+            st.image("https://placehold.co/400x300/F5F5F5/CCC?text=Image+B", caption="方案 B")
+        
+        sel = st.radio("你的判断是？", ["方案 A 更好", "方案 B 更好", "难以分辨"], key=f"ab_r_{q_index}")
         if st.button("下一题 ➡️", key=f"btn_ab_{q_index}"):
             st.session_state.answers[f"q{q_index}"] = sel
             next_step()
@@ -196,17 +293,17 @@ elif st.session_state.step == 11:
     st.balloons()
     st.markdown(f"""
     <div style='text-align: center; margin-top: 50px;'>
-        <h1>🎉 感谢你的参与！</h1>
-        <div style='background-color:#F0F8FF; padding:20px; border-radius:10px; margin-top:20px;'>
-            <p>✅ 身份: <strong>{st.session_state.role}</strong></p>
-            <p>✅ 已完成测试</p>
+        <h1>🎉 感谢你的反馈！</h1>
+        <p style='color:#888;'>你的每一个回答都在帮助模型进化。</p>
+        <div style='background-color:#F8F9FA; padding:30px; border-radius:15px; margin-top:30px; border:1px solid #EEE;'>
+            <h3 style='margin:0;'>✅ 身份: {st.session_state.role}</h3>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    with st.expander("🔍 Debug 数据"):
-        st.write(st.session_state.answers)
+    with st.expander("💾 开发者模式: 查看JSON数据"):
+        st.json(st.session_state.answers)
     
-    if st.button("🔄 重新开始"):
+    if st.button("🔄 返回首页", use_container_width=True):
         st.session_state.clear()
         st.rerun()
