@@ -4,126 +4,13 @@ from PIL import Image
 
 # --- 1. 页面配置 ---
 st.set_page_config(
-    page_title="Visionary Lab - 创作者内测",
+    page_title="Visionary Lab",
     page_icon="✨",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. 核心 CSS (视觉重构) ---
-st.markdown("""
-<style>
-    /* 全局背景与字体 */
-    .stApp {
-        background-color: #F8FAFC; /* 极淡的灰蓝色底，更有质感 */
-        font-family: 'PingFang SC', 'Helvetica Neue', sans-serif;
-    }
-    
-    /* 隐藏默认头部 */
-    header {visibility: hidden;}
-
-    /* =============================================
-       核心交互：大方块卡片 (Square Cards)
-       ============================================= */
-    
-    /* 1. 基础按钮样式重置 */
-    div.stButton > button {
-        width: 100%;
-        height: 320px; /* 强制高度，形成长方/正方的大卡片感 */
-        border-radius: 24px;
-        border: 2px solid transparent;
-        color: #334155;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* 丝滑动画 */
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.05); /* 柔和阴影 */
-    }
-
-    /* 2. 针对不同列的卡片赋予不同的“底色分布” */
-    
-    /* 第一列：大众创作者 - 清新青色系 */
-    div[data-testid="column"]:nth-of-type(1) div.stButton > button {
-        background: linear-gradient(145deg, #ffffff 0%, #F0FDF4 100%);
-    }
-    
-    /* 第二列：设计师 - 梦幻紫色系 */
-    div[data-testid="column"]:nth-of-type(2) div.stButton > button {
-        background: linear-gradient(145deg, #ffffff 0%, #FAF5FF 100%);
-    }
-    
-    /* 第三列：专家 - 极客蓝色系 */
-    div[data-testid="column"]:nth-of-type(3) div.stButton > button {
-        background: linear-gradient(145deg, #ffffff 0%, #F0F9FF 100%);
-    }
-
-    /* 3. 悬停 (Hover) 与 激活 (Active) - 统一变身“浅蓝色系” */
-    div.stButton > button:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 20px 40px -10px rgba(56, 189, 248, 0.2); /* 蓝色投影 */
-        border-color: #BAE6FD; /* 浅蓝边框 */
-        background: #F0F9FF; /* 整个卡片变浅蓝 */
-    }
-
-    div.stButton > button:active {
-        background-color: #E0F2FE !important;
-        border-color: #38BDF8 !important;
-        transform: scale(0.98);
-    }
-
-    /* 4. 卡片内部文字样式优化 */
-    div.stButton > button p {
-        font-weight: 600;
-        letter-spacing: 0.5px;
-    }
-
-    /* =============================================
-       其他 UI 组件优化
-       ============================================= */
-    
-    /* 输入框与上传区域 */
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-radius: 12px;
-        transition: border-color 0.2s;
-    }
-    .stTextInput>div>div>input:focus, .stTextArea>div>div>textarea:focus {
-        border-color: #38BDF8; /* 聚焦时的亮蓝色 */
-        box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
-    }
-
-    /* 灵感标签 (Tags) */
-    .inspiration-tag {
-        background-color: #F1F5F9;
-        color: #64748B;
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 13px;
-        margin: 4px;
-        border: 1px solid transparent;
-        display: inline-block;
-        cursor: pointer;
-    }
-
-</style>
-""", unsafe_allow_html=True)
-
-# --- 3. 模拟 API (保留功能) ---
-def call_google_gen_ai(uploaded_file, prompt):
-    time.sleep(1.5)
-    try:
-        img = Image.open(uploaded_file).convert("RGB")
-        # 简单模拟处理
-        from PIL import ImageEnhance
-        enhancer = ImageEnhance.Contrast(img)
-        return enhancer.enhance(1.2)
-    except:
-        return None
-
-# --- 4. 状态管理 ---
+# --- 2. 状态管理 ---
 if 'step' not in st.session_state: st.session_state.step = 0
 if 'role' not in st.session_state: st.session_state.role = None
 if 'generated_image' not in st.session_state: st.session_state.generated_image = None
@@ -134,129 +21,213 @@ def set_role(role):
     st.session_state.step = 1
     st.rerun()
 
-# ==========================================
-# STEP 0: 首页 - 炫彩方块入口
-# ==========================================
+# --- 3. 模拟 Google Nano API ---
+def call_google_gen_ai(uploaded_file, prompt):
+    time.sleep(1.5)
+    try:
+        return Image.open(uploaded_file).convert("RGB")
+    except:
+        return None
+
+# =========================================================
+# 场景 A: 首页 (STEP 0) - 5:4 巨型卡片 CSS
+# =========================================================
 if st.session_state.step == 0:
+    st.markdown("""
+    <style>
+        .stApp { background-color: #F8FAFC; font-family: 'Helvetica Neue', sans-serif; }
+        header {visibility: hidden;}
+        
+        /* 首页专用：大卡片样式 */
+        div.stButton > button {
+            width: 100%;
+            aspect-ratio: 5 / 4; /* 保持宽高比 */
+            min-height: 300px;
+            border-radius: 32px;
+            border: 0px solid transparent;
+            color: #334155;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        
+        /* 悬停特效：整体上浮 + 蓝光 */
+        div.stButton > button:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 25px 60px -12px rgba(56, 189, 248, 0.4);
+        }
+        
+        /* 颜色分布 */
+        div[data-testid="column"]:nth-of-type(1) div.stButton > button { background: linear-gradient(135deg, #fff 0%, #ECFDF5 100%); }
+        div[data-testid="column"]:nth-of-type(2) div.stButton > button { background: linear-gradient(135deg, #fff 0%, #F5F3FF 100%); }
+        div[data-testid="column"]:nth-of-type(3) div.stButton > button { background: linear-gradient(135deg, #fff 0%, #F0F9FF 100%); }
+
+        /* 字体修正 */
+        div.stButton > button p { font-size: 16px; font-weight: 600; }
+    </style>
+    """, unsafe_allow_html=True)
+
     st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #1E293B;'>✨ Visionary Lab 内测</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #94A3B8; margin-bottom: 60px; font-size: 18px;'>选择创作者身份，开启图生图体验</p>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #0F172A; font-size: 40px;'>Visionary Lab</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #94A3B8; margin-bottom: 50px;'>Choose your identity to start</p>", unsafe_allow_html=True)
 
-    # 布局：三列大卡片
     c1, c2, c3 = st.columns(3, gap="large")
-
-    # 利用 \n 换行符来排版卡片内容
-    # 注意：这里的样式完全由上方的 CSS nth-of-type 控制
-    
     with c1:
-        # 清新青色系卡片
-        if st.button("🌱\n\n大众创作者\n\nSocial Media & Life", key="btn_user"):
-            set_role("user")
-
+        if st.button("🌱\n\n大 众 创 作 者\n\nSocial & Life", key="btn_user"): set_role("user")
     with c2:
-        # 梦幻紫色系卡片
-        if st.button("🎨\n\n视觉设计师\n\nProfessional & Creative", key="btn_designer"):
-            set_role("designer")
-
+        if st.button("🎨\n\n视 觉 设 计 师\n\nPro Creative", key="btn_designer"): set_role("designer")
     with c3:
-        # 极客蓝色系卡片
-        if st.button("⚡\n\nAIGC 专家\n\nFine-tuning & Logic", key="btn_expert"):
-            set_role("expert")
+        if st.button("⚡\n\nA I G C 专 家\n\nFine-tuning", key="btn_expert"): set_role("expert")
 
-# ==========================================
-# STEP 1: 沉浸式图生图 (浅蓝色系交互)
-# ==========================================
+
+# =========================================================
+# 场景 B: 工作台 (STEP 1) - 精致 Tags & 白玉按钮 CSS
+# =========================================================
 elif st.session_state.step == 1:
+    st.markdown("""
+    <style>
+        .stApp { background-color: #FAFAFA; }
+        header {visibility: hidden;}
+
+        /* --- 1. 灵感 Tag 样式 (重写 Secondary Button) --- */
+        /* 定位：把所有次级按钮(secondary)变成小标签 */
+        button[kind="secondary"] {
+            background-color: #F1F5F9; /* 浅灰底 */
+            color: #64748B;            /* 灰字 */
+            border-radius: 20px;       /* 药丸形状 */
+            border: 1px solid transparent;
+            height: 32px;
+            font-size: 13px !important;
+            padding: 0px 15px;
+            margin-right: 5px;
+            transition: all 0.2s;
+            width: auto !important;    /* 只有文字那么宽 */
+        }
+        
+        /* Tag 悬停 */
+        button[kind="secondary"]:hover {
+            background-color: #E2E8F0;
+            color: #334155;
+            border-color: #CBD5E1;
+            transform: scale(1.02);
+        }
+
+        /* --- 2. 生成按钮样式 (重写 Primary Button) --- */
+        /* 要求：圆角小矩形，浅白色，无红色 */
+        button[kind="primary"] {
+            background-color: #FFFFFF; /* 浅白色 */
+            color: #475569;            /* 深灰字 */
+            border: 1px solid #E2E8F0; /* 极淡的边框 */
+            border-radius: 12px;       /* 圆角小矩形 */
+            height: 48px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        /* 生成按钮 - 悬停 (变成浅蓝色系) */
+        button[kind="primary"]:hover {
+            background-color: #F0F9FF; /* 极淡蓝底 */
+            border-color: #7DD3FC;     /* 亮蓝边框 */
+            color: #0284C7;            /* 亮蓝文字 */
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2); /* 蓝色柔光 */
+        }
+        
+        /* 去除 Streamlit 默认的红色 Focus 边框 */
+        button[kind="primary"]:focus:not(:active) {
+            border-color: #7DD3FC;
+            color: #0284C7;
+        }
+
+        /* 输入框美化 */
+        .stTextArea textarea {
+            background-color: white;
+            border-radius: 12px;
+            border: 1px solid #E2E8F0;
+        }
+        .stTextArea textarea:focus {
+            border-color: #38BDF8;
+            box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1);
+        }
+
+    </style>
+    """, unsafe_allow_html=True)
+
     # 顶部导航
     st.markdown(f"""
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; color: #64748B;">
-        <span>当前身份：<b style="color:#38BDF8">{st.session_state.role}</b></span>
-        <a href="javascript:window.location.reload()" style="text-decoration: none; color: #94A3B8;">✕ 退出测试</a>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:15px;">
+        <div style="font-weight:bold; color:#333;">{st.session_state.role} <span style="font-weight:normal; color:#aaa;">/ Workspace</span></div>
+        <a href="javascript:window.location.reload()" style="font-size:13px; color:#999; text-decoration:none;">✕ Close</a>
     </div>
     """, unsafe_allow_html=True)
-    
-    col_main, col_preview = st.columns([1.1, 1], gap="large")
 
-    # --- 左侧：操作面板 ---
+    col_main, col_preview = st.columns([1, 1], gap="large")
+
+    # --- 左侧：编辑器 ---
     with col_main:
-        st.markdown("### 📸 上传原图")
-        uploaded_file = st.file_uploader("支持 JPG / PNG / WEBP", type=['png', 'jpg', 'jpeg'])
+        st.markdown("##### 1. 上传图片")
+        uploaded_file = st.file_uploader("", type=['png', 'jpg'])
         
         if uploaded_file:
-            st.image(uploaded_file, caption="Reference Image", width=200)
+            st.image(uploaded_file, width=150) # 预览小一点
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("### 🪄 创意指令")
+            st.markdown("##### 2. 灵感 Tag")
             
-            # 灵感 Tag (用普通按钮模拟 Tag，利用 CSS 变好看)
-            st.write("灵感推荐：")
-            t1, t2, t3 = st.columns(3)
-            if t1.button("💇‍♀️ 银灰酷短发"): st.session_state.img_prompt = "帮我换个银灰色的短发，赛博朋克风格，高对比度"
-            if t2.button("🧥 90s 复古风"): st.session_state.img_prompt = "复古90年代胶片质感，重水洗牛仔外套，颗粒感"
-            if t3.button("🧸 3D 卡通化"): st.session_state.img_prompt = "皮克斯风格3D卡通形象，柔和光照，可愛风格"
-
-            # 文本框
-            prompt = st.text_area(
-                "", 
-                value=st.session_state.img_prompt, 
-                height=140,
-                placeholder="在此输入您的提示词 (Prompt)..."
-            )
+            # 使用 columns 布局让 tag 紧凑排列
+            # 注意：这里 type="secondary" 会触发上面的 Tag CSS
+            t1, t2, t3, t4 = st.columns([1, 1, 1, 2]) 
+            
+            with t1:
+                if st.button("💇‍♀️ 银灰短发", type="secondary"): 
+                    st.session_state.img_prompt = "赛博朋克风格，银灰色短发，高冷酷炫"
+            with t2:
+                if st.button("🧥 90s 复古", type="secondary"): 
+                    st.session_state.img_prompt = "90年代复古胶片感，重水洗牛仔外套，怀旧颗粒"
+            with t3:
+                if st.button("🧸 3D 卡通", type="secondary"): 
+                    st.session_state.img_prompt = "皮克斯3D动画风格，柔和光照，Q版可爱"
+            
+            # 输入框
+            prompt = st.text_area("", value=st.session_state.img_prompt, height=100, placeholder="点击上方Tag或输入提示词...")
             st.session_state.img_prompt = prompt
 
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # 主要行动按钮
+            # 生成按钮 (type="primary" 会触发上面的白玉按钮 CSS)
             if st.button("✨ 立即生成 (Generate)", type="primary", use_container_width=True):
-                if not prompt:
-                    st.toast("⚠️ 请先输入一点想法", icon="💡")
-                else:
-                    with st.spinner("正在连接 Google 模型进行渲染..."):
+                if prompt:
+                    with st.spinner("Connecting to Nano Model..."):
                         res = call_google_gen_ai(uploaded_file, prompt)
-                        if res:
-                            st.session_state.generated_image = res
-                            st.rerun()
+                        st.session_state.generated_image = res
+                        st.rerun()
 
-    # --- 右侧：结果预览 ---
+    # --- 右侧：预览区 ---
     with col_preview:
         if st.session_state.generated_image:
-            st.markdown("### 🎉 生成结果")
-            # 给结果图加一个好看的容器
-            st.markdown('<div style="padding: 10px; background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">', unsafe_allow_html=True)
+            st.markdown("##### 3. 结果预览")
+            # 结果图容器
+            st.markdown('<div style="padding:10px; background:white; border-radius:16px; border:1px solid #eee; box-shadow:0 5px 15px rgba(0,0,0,0.03);">', unsafe_allow_html=True)
             st.image(st.session_state.generated_image, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("##### 您的评价")
-            
-            # 简单的评价交互
-            feedback = st.radio("效果如何？", ["超乎预期 😍", "还不错 🙂", "一般般 😐", "完全崩了 😵"], horizontal=True)
-            
-            c_retry, c_next = st.columns(2)
-            with c_retry:
-                if st.button("🔄 重画一张"):
-                    st.session_state.generated_image = None
-                    st.rerun()
-            with c_next:
+            c_fb, c_sub = st.columns([1, 1])
+            with c_sub:
+                # 提交也用白玉按钮风格，保持统一
                 if st.button("提交反馈 ➡️", type="primary"):
                     st.balloons()
-                    st.success("反馈已记录！")
+                    st.success("Feedback Sent!")
         else:
-            # 极简的空状态
+            # 空状态
             st.markdown("""
-            <div style="
-                height: 550px; 
-                background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
-                border-radius: 24px; 
-                border: 2px dashed #CBD5E1;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                flex-direction: column;
-                color: #94A3B8;
-            ">
-                <div style="font-size: 60px; margin-bottom: 20px; opacity: 0.5;">🎨</div>
-                <div style="font-weight: 500;">AI 绘图工作区</div>
-                <div style="font-size: 12px; margin-top: 8px;">结果将在此处渲染</div>
+            <div style="height: 450px; background: #F8FAFC; border-radius: 20px; border: 2px dashed #E2E8F0; display: flex; align-items: center; justify-content: center; color: #CBD5E1; flex-direction: column;">
+               <div style="font-size:40px; margin-bottom:10px;">🎨</div>
+               <div>等待生成指令</div>
             </div>
             """, unsafe_allow_html=True)
