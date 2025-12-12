@@ -3,283 +3,344 @@ import time
 
 # --- 1. 页面基础配置 ---
 st.set_page_config(
-    page_title="Visionary Lab - 沉浸式评测",
+    page_title="Visionary Lab - 创作者内测",
     page_icon="✨",
-    layout="centered", # 改为居中布局，更适合问卷
-    initial_sidebar_state="collapsed" # 隐藏侧边栏
+    layout="wide", # 改为宽屏以容纳左右分栏的图生图界面
+    initial_sidebar_state="collapsed"
 )
 
-# --- 2. 状态初始化 (Session State) ---
-# 这是实现“记忆”和“翻页”的核心
+# --- 2. 状态管理 (Session State) ---
 if 'step' not in st.session_state:
-    st.session_state.step = 0  # 0: 首页, 1-3: 题目, 4: 结束
+    st.session_state.step = 0 
 if 'role' not in st.session_state:
     st.session_state.role = None
-if 'answers' not in st.session_state:
-    st.session_state.answers = {}
+if 'user_img' not in st.session_state:
+    st.session_state.user_img = None
+if 'img_prompt' not in st.session_state:
+    st.session_state.img_prompt = ""
 
-# --- 3. 自定义 CSS (灵动极简风 - 升级版) ---
+# --- 3. 高级 CSS (视觉设计核心) ---
 st.markdown("""
 <style>
-    /* 全局背景 */
-    .stApp {
-        background-color: #fafafa;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
+    /* 全局字体与背景 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap');
     
-    /* 隐藏默认的主菜单和页脚 */
-    #MainMenu {visibility: hidden;}
+    .stApp {
+        background-color: #FAFAFA; /* 极简灰白底 */
+        font-family: 'Noto Sans SC', sans-serif;
+    }
+
+    /* 隐藏顶部红线和菜单 */
+    header {visibility: hidden;}
     footer {visibility: hidden;}
 
-    /* 卡片容器样式 */
-    .css-1r6slb0 {
+    /* 首页身份卡片样式 */
+    .role-card-container {
         background-color: white;
-        padding: 2rem;
-        border-radius: 24px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+        border-radius: 20px;
+        padding: 30px 20px;
+        text-align: center;
         border: 1px solid #f0f0f0;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+        height: 100%;
+    }
+    .role-card-container:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(108, 92, 231, 0.15);
+        border-color: #a29bfe;
     }
     
-    /* 标题样式 */
-    h1 { color: #2d3436; font-weight: 700; letter-spacing: -1px; }
-    h3 { color: #636e72; font-weight: 500; }
-    p { color: #636e72; }
-
-    /* 按钮美化 - 重点优化导航按钮 */
-    div.stButton > button {
-        width: 100%;
-        border-radius: 16px;
-        height: 50px;
+    /* 身份图标 */
+    .role-icon { font-size: 48px; margin-bottom: 15px; }
+    
+    /* 身份标题 */
+    .role-title { 
+        font-size: 22px; 
+        font-weight: 700; 
+        color: #2d3436; 
+        margin-bottom: 10px; 
+    }
+    
+    /* 标签 (Tags) 样式 */
+    .role-badge {
+        display: inline-block;
+        background-color: #f1f2f6;
+        color: #636e72;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        margin: 2px;
+    }
+    
+    /* 按钮美化 */
+    .stButton>button {
+        border-radius: 12px;
         font-weight: 600;
         border: none;
-        transition: transform 0.2s, box-shadow 0.2s;
+        padding: 0.5rem 1rem;
     }
-    
-    /* 主要按钮 (下一步/提交) */
-    div.stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
-        color: white;
+    .stButton>button[kind="primary"] {
+        background: linear-gradient(135deg, #6c5ce7 0%, #8e44ad 100%);
         box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3);
     }
-    
-    /* 次要按钮 (上一步/选项) */
-    div.stButton > button[kind="secondary"] {
-        background-color: #f1f2f6;
-        color: #2d3436;
-    }
-    
-    div.stButton > button:hover {
-        transform: translateY(-2px);
-    }
 
-    /* 身份选择卡片特效 */
-    .role-card {
-        padding: 20px;
-        border-radius: 16px;
-        background: white;
-        text-align: center;
-        border: 2px solid transparent;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-    .role-card:hover {
-        border-color: #a29bfe;
-        background-color: #f8f7ff;
-    }
-    
-    /* 进度条颜色 */
-    .stProgress > div > div > div > div {
-        background-color: #6c5ce7;
+    /* 灵感胶囊样式 */
+    div[data-testid="stMarkdownContainer"] p {
+        font-size: 16px;
+        line-height: 1.6;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. 辅助函数 ---
+# --- 4. 辅助逻辑函数 ---
 def next_step():
     st.session_state.step += 1
-    # 强制重跑脚本以更新页面
-    # st.rerun() 在旧版本 Streamlit 中可能是 st.experimental_rerun()
+    st.rerun()
 
 def prev_step():
     if st.session_state.step > 0:
         st.session_state.step -= 1
+        st.rerun()
 
-def select_role(role_name):
-    st.session_state.role = role_name
+def set_role(role):
+    st.session_state.role = role
     next_step()
 
-def show_placeholder(text, h=250):
-    st.markdown(f"""
-    <div style="
-        background-color: #f1f3f5; 
-        height: {h}px; 
-        border-radius: 16px; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        color: #adb5bd; 
-        font-weight: 500;
-        border: 2px dashed #dee2e6;
-        margin-bottom: 20px;">
-        🖼️ {text}
-    </div>
-    """, unsafe_allow_html=True)
+def use_inspiration(text):
+    st.session_state.img_prompt = text
 
-# --- 5. 页面逻辑控制 ---
+# --- 5. 页面流 ---
 
-# >>> 步骤 0: 首页身份选择 <<<
+# =================================================
+# STEP 0: 首页 - 身份选择 (卡片化设计)
+# =================================================
 if st.session_state.step == 0:
-    st.markdown("<div style='text-align: center; padding-top: 20px;'>", unsafe_allow_html=True)
-    st.title("✨ Visionary Lab 内测")
-    st.markdown("### 请选择你的身份开启体验")
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #2d3436;'>✨ Visionary Lab 模型公测</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #b2bec3; margin-bottom: 50px;'>请选择最符合您的创作者画像，开启定制化评测之旅</p>", unsafe_allow_html=True)
     
-    c1, c2, c3 = st.columns(3)
+    # 使用列布局来模拟卡片网格
+    c1, c2, c3 = st.columns([1, 1, 1])
     
+    # 卡片 1: 大众/创作者
     with c1:
-        st.markdown("<div style='font-size: 40px;'>🌱</div>", unsafe_allow_html=True)
-        st.subheader("探索者")
-        st.caption("普通用户 / 爱好者")
-        if st.button("我是探索者", key="role_1", type="secondary"):
-            select_role("user")
-            st.rerun()
+        st.markdown("""
+        <div class="role-card-container">
+            <div class="role-icon">🌱</div>
+            <div class="role-title">大众创作者</div>
+            <div>
+                <span class="role-badge">社交媒体</span>
+                <span class="role-badge">生活记录</span>
+                <span class="role-badge">趣味/修图</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("进入通道 →", key="btn_user", use_container_width=True):
+            set_role("user")
 
+    # 卡片 2: 设计师
     with c2:
-        st.markdown("<div style='font-size: 40px;'>🎨</div>", unsafe_allow_html=True)
-        st.subheader("设计师")
-        st.caption("视觉 / 创意工作者")
-        if st.button("我是设计师", key="role_2", type="secondary"):
-            select_role("designer")
-            st.rerun()
+        st.markdown("""
+        <div class="role-card-container">
+            <div class="role-icon">🎨</div>
+            <div class="role-title">专业设计师</div>
+            <div>
+                <span class="role-badge">视觉传达</span>
+                <span class="role-badge">商业修图</span>
+                <span class="role-badge">AI辅助工作流</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("进入通道 →", key="btn_designer", use_container_width=True):
+            set_role("designer")
 
+    # 卡片 3: 专家
     with c3:
-        st.markdown("<div style='font-size: 40px;'>⚡</div>", unsafe_allow_html=True)
-        st.subheader("极客专家")
-        st.caption("AIGC / 模型训练师")
-        if st.button("我是极客", key="role_3", type="secondary"):
-            select_role("expert")
-            st.rerun()
-            
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("""
+        <div class="role-card-container">
+            <div class="role-icon">⚡</div>
+            <div class="role-title">AIGC 专家</div>
+            <div>
+                <span class="role-badge">模型微调</span>
+                <span class="role-badge">Prompt Engineering</span>
+                <span class="role-badge">技术评测</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("进入通道 →", key="btn_expert", use_container_width=True):
+            set_role("expert")
 
+# =================================================
+# STEP 1: 全员通用题 - 开放式图生图 (Img2Img)
+# =================================================
+elif st.session_state.step == 1:
+    st.markdown(f"### Step 1: 🔮 风格重塑实验室")
+    st.caption("上传一张照片，告诉我们你想把它变成什么样。请测试模型的语义理解与风格化能力。")
+    st.divider()
 
-# >>> 步骤 1-3: 问卷环节 <<<
-elif 1 <= st.session_state.step <= 3:
+    col_upload, col_control = st.columns([1, 1.2], gap="large")
     
-    # 顶部进度条
-    progress = st.session_state.step / 3
-    st.progress(progress)
-    st.caption(f"Step {st.session_state.step} / 3 · 当前身份: {st.session_state.role.upper()}")
+    with col_upload:
+        st.markdown("**1. 上传原图**")
+        uploaded_file = st.file_uploader("", type=['png', 'jpg', 'jpeg'])
+        if uploaded_file:
+            st.session_state.user_img = uploaded_file
+            st.image(uploaded_file, caption="原图预览", use_container_width=True)
+        else:
+            # 默认占位符，保持排版美观
+            st.info("👋 请先上传一张图片开启测试")
+            st.markdown("""
+            <div style="height: 300px; background: #f0f2f6; border-radius: 15px; display: flex; align-items: center; justify-content: center; color: #ccc;">
+                等待上传...
+            </div>
+            """, unsafe_allow_html=True)
+
+    with col_control:
+        st.markdown("**2. 输入咒语 (Prompt)**")
+        
+        # 灵感胶囊 (点击即用)
+        st.write("✨ 灵感快捷键：")
+        
+        inspiration_map = {
+            "💇‍♀️ 银灰酷短发": "帮我换个银灰色的短发，要赛博朋克风格，很酷的那种",
+            "🧥 90s 复古牛仔": "把衣服换成复古的 90 年代重水洗牛仔外套，胶片质感",
+            "🧸 3D 皮克斯风": "把我变成皮克斯风格的 3D 卡通形象，柔和光照，可愛风格",
+            "🏘️ 怪奇物语小镇": "保持人物不变，把背景换成《怪奇物语》里的霍金斯小镇，霓虹灯光氛围"
+        }
+        
+        # 使用列布局放置灵感按钮
+        ic1, ic2 = st.columns(2)
+        with ic1:
+            if st.button("💇‍♀️ 银灰酷短发", use_container_width=True):
+                use_inspiration(inspiration_map["💇‍♀️ 银灰酷短发"])
+            if st.button("🧸 3D 皮克斯风", use_container_width=True):
+                use_inspiration(inspiration_map["🧸 3D 皮克斯风"])
+        with ic2:
+            if st.button("🧥 90s 复古牛仔", use_container_width=True):
+                use_inspiration(inspiration_map["🧥 90s 复古牛仔"])
+            if st.button("🏘️ 怪奇物语小镇", use_container_width=True):
+                use_inspiration(inspiration_map["🏘️ 怪奇物语小镇"])
+
+        # 输入框 (绑定 session_state 以支持按钮填入)
+        prompt_input = st.text_area(
+            "或者输入你自己的想法...", 
+            value=st.session_state.img_prompt,
+            height=150,
+            placeholder="例如：把背景换成星空，让画面更有电影感..."
+        )
+        # 更新状态
+        st.session_state.img_prompt = prompt_input
+        
+        if st.session_state.user_img and st.session_state.img_prompt:
+             st.success("✅ 任务已就绪 (后台模拟生成中...)")
+        
+# =================================================
+# STEP 2 & 3: 分人群的差异化题目
+# =================================================
+elif st.session_state.step >= 2 and st.session_state.step < 4:
     
-    # --- 题目内容生成器 ---
+    # 顶部进度提示
+    st.progress(st.session_state.step / 4)
     
-    # === A. 普通用户题目 ===
+    # --- A. 普通用户 (Step 2 & 3) ---
     if st.session_state.role == "user":
-        if st.session_state.step == 1:
-            st.header("1. 第一眼感觉 📸")
-            st.write("哪张图让你觉得更开心、更温暖？")
-            col_a, col_b = st.columns(2)
-            with col_a:
-                show_placeholder("模型 V1 (暖色调)")
-                st.checkbox("喜欢左边", key="u_q1_left")
-            with col_b:
-                show_placeholder("模型 V2 (冷色调)")
-                st.checkbox("喜欢右边", key="u_q1_right")
-                
-        elif st.session_state.step == 2:
-            st.header("2. 真实度测试 ⭐")
-            show_placeholder("生成的人像照片", h=300)
-            st.write("如果不告诉你这是AI画的，你会觉得它是真照片吗？")
-            st.slider("拖动滑块打分 (0=假, 10=真)", 0, 10, key="u_q2_score")
-            
-        elif st.session_state.step == 3:
-            st.header("3. 许愿池 💭")
-            st.write("你希望下一代模型能帮你画什么？")
-            st.text_area("比如：画我的宠物、画二次元头像...", height=150, key="u_q3_text")
-
-    # === B. 设计师题目 ===
-    elif st.session_state.role == "designer":
-        if st.session_state.step == 1:
-            st.header("1. 可编辑性评估 📐")
-            show_placeholder("带复杂背景的产品图", h=300)
-            st.write("作为素材，这张图的**抠图难度**和**构图预留空间**如何？")
-            st.select_slider("选择评价", options=["完全无法商用", "需大量修图", "尚可", "构图优秀", "完美分层"], key="d_q1_rating")
-            
-        elif st.session_state.step == 2:
-            st.header("2. 瑕疵多选 🔍")
-            st.write("请指出图中所有不符合解剖学或物理规律的地方：")
-            c1, c2 = st.columns([1, 1])
-            with c1:
-                show_placeholder("手部与光影测试图")
-            with c2:
-                st.multiselect("点击添加瑕疵标签：", 
-                               ["🖐️ 手指数目错误", "💡 阴影方向矛盾", "🧊 材质质感塑料", "🌫️ 边缘过度模糊", "🧱 结构透视错误"],
-                               key="d_q2_tags")
-                               
-        elif st.session_state.step == 3:
-            st.header("3. 风格迁移需求 🎨")
-            st.write("对于您的设计工作流，目前最痛点的风格是什么？")
-            st.text_input("例如：3D粘土风、扁平插画、写实摄影...", key="d_q3_text")
-
-    # === C. 极客专家题目 ===
-    elif st.session_state.role == "expert":
-        if st.session_state.step == 1:
-            st.header("1. 语义对齐 (Prompt Adherence) 🧠")
-            st.info("Prompt: A red cube ON TOP OF a blue sphere, cinematic lighting.")
+        if st.session_state.step == 2:
+            st.subheader("Step 2: ⚖️ A/B 盲测")
+            st.write("基于您刚才的描述，我们生成了两个版本，您更喜欢哪个？")
             c1, c2 = st.columns(2)
             with c1:
-                show_placeholder("Result Image")
+                st.image("https://placehold.co/400x400/EEE/31343C?text=Version+A", caption="版本 A")
+                st.button("❤️ 投给 A", key="vote_a", use_container_width=True)
             with c2:
-                st.radio("空间逻辑判断：", 
-                         ["完全错误 (位置颠倒)", "部分正确 (物体对但位置偏)", "完全正确 (Spatial Relations OK)"],
-                         key="e_q1_logic")
-                         
-        elif st.session_state.step == 2:
-            st.header("2. 文本渲染能力 (OCR) 🔠")
-            show_placeholder("Signboard with text 'FUTURE'")
-            st.write("评价文字生成的字形一致性 (Glyph Consistency)：")
-            st.number_input("打分 (1-5分)", 1, 5, 3, key="e_q2_score")
+                st.image("https://placehold.co/400x400/EEE/31343C?text=Version+B", caption="版本 B")
+                st.button("❤️ 投给 B", key="vote_b", use_container_width=True)
+                
+        elif st.session_state.step == 3:
+            st.subheader("Step 3: 💬 体验官吐槽")
+            st.write("在使用刚才的图生图功能时，你觉得哪里最不方便？")
+            st.radio("单选：", ["生成速度太慢", "不像我本人了", "背景融合生硬", "没有理解我的指令"], key="u_q3")
+
+    # --- B. 设计师 (Step 2 & 3) ---
+    elif st.session_state.role == "designer":
+        if st.session_state.step == 2:
+            st.subheader("Step 2: 📐 可用性分析")
+            st.info(f"Prompt: {st.session_state.img_prompt}")
+            st.image("https://placehold.co/800x400/EEE/31343C?text=Generated+Result", caption="模拟生成结果")
+            st.write("如果不修图直接交付，这张图能打几分？")
+            st.slider("商用可用度打分", 0, 10, 5)
             
         elif st.session_state.step == 3:
-            st.header("3. 鲁棒性分析 🧪")
-            st.write("在高 CFG Scale (15+) 下，你观察到了什么现象？")
-            st.text_area("描述过饱和、伪影或构图崩坏的情况...", key="e_q3_text")
+            st.subheader("Step 3: 🔧 生产力工具链")
+            st.write("您希望这个模型支持导出什么格式以配合 Photoshop/Figma？")
+            st.multiselect("多选：", ["带透明通道的 PNG", "分层 PSD", "SVG 矢量图", "Depth Map 深度图"], key="d_q3")
 
-    # --- 底部导航栏 ---
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    col_prev, col_next = st.columns([1, 3])
+    # --- C. 专家 (Step 2 & 3) ---
+    elif st.session_state.role == "expert":
+        if st.session_state.step == 2:
+            st.subheader("Step 2: 🧠 语义一致性 (Semantic Alignment)")
+            st.write(f"针对指令：**{st.session_state.img_prompt}**")
+            st.image("https://placehold.co/800x400/EEE/31343C?text=Edge+Case+Test", caption="生成结果")
+            st.markdown("##### 细粒度评估：")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.checkbox("❌ 存在概念融合 (Concept Bleeding)")
+                st.checkbox("❌ 属性泄露 (Attribute Leakage)")
+            with c2:
+                st.checkbox("✅ 风格对齐 (Style Match)")
+                st.checkbox("✅ 主体ID保持 (Identity Preservation)")
+
+        elif st.session_state.step == 3:
+            st.subheader("Step 3: 🔬 极限与幻觉")
+            st.text_input("如果我们要针对该模型进行红队测试 (Red Teaming)，你会输入什么 Prompt 来攻击它？")
+
+# =================================================
+# 底部导航栏 (保持常驻)
+# =================================================
+if st.session_state.step > 0 and st.session_state.step < 4:
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    c_prev, c_next = st.columns([1, 5])
     
-    with col_prev:
-        if st.button("⬅️ 上一步", type="secondary"):
+    with c_prev:
+        if st.button("⬅️ 上一步", type="secondary", use_container_width=True):
             prev_step()
-            st.rerun()
             
-    with col_next:
-        if st.session_state.step < 3:
-            if st.button("下一步 ➡️", type="primary"):
+    with c_next:
+        # 只有在第一步且未上传图片时，禁用下一步（这里做个软提示，不强制禁用以免卡住）
+        if st.session_state.step == 1 and not st.session_state.user_img:
+            if st.button("跳过上传 (仅预览)", type="secondary"):
                 next_step()
-                st.rerun()
+        elif st.session_state.step == 3:
+            if st.button("🚀 提交报告", type="primary", use_container_width=True):
+                next_step()
         else:
-            if st.button("🚀 提交反馈", type="primary"):
-                next_step() # 去往 Step 4
-                st.rerun()
+            if st.button("下一步 ➡️", type="primary", use_container_width=True):
+                next_step()
 
-# >>> 步骤 4: 结束页 <<<
+# =================================================
+# STEP 4: 结束页
+# =================================================
 elif st.session_state.step == 4:
     st.balloons()
-    st.markdown("<div style='text-align: center; margin-top: 50px;'>", unsafe_allow_html=True)
-    st.title("🎉 感谢参与！")
-    st.subheader("您的专业反馈已归档")
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.success("数据已成功发送至后台")
+    st.markdown("""
+    <div style="text-align: center; padding: 50px;">
+        <h1 style="color: #6c5ce7;">🎉 评测完成</h1>
+        <p style="font-size: 18px; color: #666;">感谢您从 <b>{}</b> 视角提供的宝贵数据。</p>
+    </div>
+    """.format("设计专家" if st.session_state.role == 'designer' else "AIGC极客" if st.session_state.role == 'expert' else "生活记录者"), unsafe_allow_html=True)
     
-    # 展示一下刚才填的内容（模拟Debug）
-    with st.expander("查看您的回答记录"):
-        st.json(st.session_state)
+    with st.expander("💾 查看本次评测数据 (JSON)"):
+        st.json({
+            "role": st.session_state.role,
+            "img_prompt": st.session_state.img_prompt,
+            "status": "success"
+        })
         
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 返回首页", type="secondary"):
+    if st.button("🔄 返回首页", use_container_width=True):
         st.session_state.step = 0
-        st.session_state.answers = {}
+        st.session_state.img_prompt = ""
         st.rerun()
-    st.markdown("</div>", unsafe_allow_html=True)
