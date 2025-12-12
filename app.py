@@ -3,7 +3,7 @@ import time
 
 # --- 1. 页面配置 ---
 st.set_page_config(
-    page_title="Image Model UX Test",
+    page_title="Model X Vision Lab",  # 浏览器标签页标题
     page_icon="✨",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -188,7 +188,14 @@ def select_role(role_name):
 # [PAGE 0] 极简首页
 if st.session_state.step == 0:
     st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True) # 顶部留白
-    st.markdown("<div style='text-align: center; margin-bottom: 60px;'><h1>Vision Lab</h1><p style='color:#AAA; font-size: 16px; font-weight:300;'>Choose your perspective</p></div>", unsafe_allow_html=True)
+    
+    # 标题区域更新
+    st.markdown("""
+        <div style='text-align: center; margin-bottom: 60px;'>
+            <h1 style='font-size: 3rem; margin-bottom: 10px;'>Model X Vision Lab</h1>
+            <p style='color:#AAA; font-size: 16px; font-weight:300;'>Choose your perspective to begin</p>
+        </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
