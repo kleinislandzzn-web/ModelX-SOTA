@@ -1,109 +1,129 @@
 import streamlit as st
 import time
 
-# --- 1. 页面基础配置 ---
+# --- 1. 页面配置 ---
 st.set_page_config(
     page_title="Image Model UX Test",
-    page_icon="🎨",
+    page_icon="✨",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. 视觉系统 (CSS) ---
+# --- 2. 极简美学视觉系统 (CSS) ---
 st.markdown("""
 <style>
-    /* 全局背景设为纯白 */
+    /* 全局重置：纯白背景，深灰字体 */
     .stApp {
         background-color: #FFFFFF;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #444444;
     }
     
     /* ------------------------------------------------ */
-    /* 🚫 核心修复：强制覆盖 Streamlit 默认的红色按钮 */
+    /* 🔘 幽灵按钮系统 (完全去除红色) */
     /* ------------------------------------------------ */
     
-    /* 按钮常态：浅灰描边，纯白填充 */
     div.stButton > button {
         background-color: #FFFFFF !important;
-        color: #555555 !important;
-        border: 1px solid #E0E0E0 !important;
-        border-radius: 12px;
-        padding: 12px 24px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        transition: all 0.2s ease-in-out;
+        color: #666666 !important;
+        border: 1px solid #EAEAEA !important;
+        border-radius: 100px !important; /* 全圆角，更灵动 */
+        padding: 10px 28px;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
     
-    /* 按钮悬停 (Hover)：浅蓝填充，蓝色描边 */
+    /* Hover: 极淡蓝背景 + 稍微深一点的描边 */
     div.stButton > button:hover {
-        background-color: #F0F8FF !important; /* AliceBlue */
-        border-color: #87CEFA !important;      /* LightSkyBlue */
-        color: #2E86C1 !important;
+        background-color: #F7FBFF !important;
+        border-color: #D1E9FF !important;
+        color: #007AFF !important;
         transform: translateY(-2px);
+        box-shadow: 0 6px 15px rgba(0,122,255,0.08);
     }
     
-    /* 按钮点击/激活 (Active/Focus)：去除红色，改为深蓝 */
-    div.stButton > button:active, div.stButton > button:focus {
-        background-color: #E6F2FF !important;
-        border-color: #2E86C1 !important;
-        color: #1B4F72 !important;
-        box-shadow: none !important;
-        outline: none !important;
+    /* Active: 点击瞬间 */
+    div.stButton > button:active {
+        background-color: #EEF7FF !important;
+        transform: scale(0.98);
     }
 
     /* ------------------------------------------------ */
-    /* 🃏 首页身份卡片定制 (三色区分) */
+    /* 🃏 空气感身份卡片 (Ultra-Light) */
     /* ------------------------------------------------ */
     
     .role-card-base {
-        padding: 25px;
-        border-radius: 20px;
+        padding: 30px 20px;
+        border-radius: 24px;
         text-align: center;
-        margin-bottom: 15px;
-        transition: transform 0.2s;
-        cursor: default;
+        margin-bottom: 20px;
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+        cursor: pointer;
     }
+    
     .role-card-base:hover {
-        transform: scale(1.02);
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.04);
     }
     
-    /* 1. 大众用户：清新薄荷绿 */
+    /* 1. 大众用户: 极淡云雾绿 */
     .card-public {
-        background-color: #F1F8E9; /* 极浅绿 */
-        border: 2px solid #DCEDC8; /* 浅绿描边 */
-        color: #33691E;
+        background-color: #FAFCFA; 
+        border-color: #F0F7F0;
     }
+    .card-public h3 { color: #5D8F6E; }
     
-    /* 2. 设计师：天空透亮蓝 */
+    /* 2. 设计师: 极淡冰川蓝 */
     .card-designer {
-        background-color: #E3F2FD; /* 极浅蓝 */
-        border: 2px solid #BBDEFB; /* 浅蓝描边 */
-        color: #0D47A1;
+        background-color: #FAFCFF;
+        border-color: #F0F5FA;
     }
+    .card-designer h3 { color: #5B86B0; }
     
-    /* 3. AI专家：梦幻紫丁香 */
+    /* 3. 专家: 极淡晨曦紫 */
     .card-expert {
-        background-color: #F3E5F5; /* 极浅紫 */
-        border: 2px solid #E1BEE7; /* 浅紫描边 */
-        color: #4A148C;
+        background-color: #FCFAFD;
+        border-color: #F7F0F9;
     }
+    .card-expert h3 { color: #9B7FA8; }
+    
+    /* Emoji 大小 */
+    .card-emoji { font-size: 42px; margin-bottom: 10px; display: block; }
+    
+    /* 卡片描述字 */
+    .card-desc { font-size: 12px; color: #999; letter-spacing: 0.5px; margin-top: 8px; }
 
     /* ------------------------------------------------ */
-    /* 🧩 其他界面元素 */
+    /* 🧼 界面降噪 (隐藏无关元素) */
     /* ------------------------------------------------ */
     
-    /* 隐藏链接图标 */
-    .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a { display: none !important; pointer-events: none; }
+    /* 隐藏标题锚点 */
+    .stMarkdown h1 a, .stMarkdown h2 a, .stMarkdown h3 a { display: none !important; }
     [data-testid="stHeaderActionElements"] { display: none !important; }
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+    #MainMenu, footer {visibility: hidden;}
     
-    /* 进度条颜色 */
-    .stProgress > div > div > div > div { background-color: #AECBFA; }
+    /* 进度条极简细线化 */
+    .stProgress > div > div { height: 4px !important; border-radius: 2px; }
+    .stProgress > div > div > div > div { background-color: #E0E0E0; background-image: linear-gradient(to right, #E0E0E0, #AECBFA); }
     
-    /* 输入框样式 */
+    /* 输入框极简 */
     .stTextInput > div > div > input, .stTextArea > div > div > textarea {
-        background-color: #FAFAFA; border-radius: 10px; border: 1px solid #EAEAEA;
+        background-color: #FCFCFC;
+        border: 1px solid #EFEFEF;
+        border-radius: 12px;
+        color: #555;
     }
+    .stTextInput > div > div > input:focus, .stTextArea > div > div > textarea:focus {
+        border-color: #D1E9FF;
+        box-shadow: 0 0 0 2px rgba(209, 233, 255, 0.3);
+    }
+    
+    /* 标题样式 */
+    h1 { font-weight: 700; color: #222; letter-spacing: -1px; font-size: 2.2rem; }
+    h3 { font-weight: 600; color: #444; font-size: 1.4rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -113,7 +133,7 @@ if 'role' not in st.session_state: st.session_state.role = None
 if 'answers' not in st.session_state: st.session_state.answers = {}
 if 'questions' not in st.session_state: st.session_state.questions = []
 
-# --- 4. 题目数据库 ---
+# --- 4. 题目数据库 (保持不变，内容完整) ---
 QUESTIONS = {
     "public": [
         {"type": "img_gen_ab", "title": "✨ Q1: 魔法变身", "desc": "这是最重要的测试！请上传一张你喜欢的照片，让AI帮你重绘风格。"},
@@ -153,7 +173,7 @@ QUESTIONS = {
     ]
 }
 
-# --- 5. 辅助功能 ---
+# --- 5. 辅助函数 ---
 def next_step():
     st.session_state.step += 1
     st.rerun()
@@ -163,21 +183,21 @@ def select_role(role_name):
     st.session_state.questions = QUESTIONS[role_name]
     next_step()
 
-# --- 6. 页面渲染 ---
+# --- 6. 页面逻辑 ---
 
-# [PAGE 0] 身份选择
+# [PAGE 0] 极简首页
 if st.session_state.step == 0:
-    st.markdown("<div style='text-align: center; margin-top: 60px; margin-bottom: 40px;'><h1 style='color:#333;'>👋 欢迎来到视觉实验室</h1><p style='color:#999;'>请选择一张身份卡片开启体验</p></div>", unsafe_allow_html=True)
+    st.markdown("<div style='height: 50px;'></div>", unsafe_allow_html=True) # 顶部留白
+    st.markdown("<div style='text-align: center; margin-bottom: 60px;'><h1>Vision Lab</h1><p style='color:#AAA; font-size: 16px; font-weight:300;'>Choose your perspective</p></div>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns(3)
     
-    # 使用自定义CSS类渲染不同颜色的卡片
     with col1:
         st.markdown("""
         <div class='role-card-base card-public'>
-            <h2>🥑</h2>
-            <h3 style='margin:0; color:#33691E;'>大众体验官</h3>
-            <p style='margin-top:5px; font-size:12px; opacity:0.8;'>发现乐趣 / 分享生活</p>
+            <span class='card-emoji'>🥑</span>
+            <h3>Public</h3>
+            <p class='card-desc'>CASUAL / FUN</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("我是大众用户", key="btn_public", use_container_width=True):
@@ -186,9 +206,9 @@ if st.session_state.step == 0:
     with col2:
         st.markdown("""
         <div class='role-card-base card-designer'>
-            <h2>🎨</h2>
-            <h3 style='margin:0; color:#0D47A1;'>视觉设计师</h3>
-            <p style='margin-top:5px; font-size:12px; opacity:0.8;'>追求细节 / 商业落地</p>
+            <span class='card-emoji'>💎</span>
+            <h3>Designer</h3>
+            <p class='card-desc'>AESTHETIC / PRO</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("我是设计师", key="btn_designer", use_container_width=True):
@@ -197,117 +217,123 @@ if st.session_state.step == 0:
     with col3:
         st.markdown("""
         <div class='role-card-base card-expert'>
-            <h2>🤖</h2>
-            <h3 style='margin:0; color:#4A148C;'>AIGC 专家</h3>
-            <p style='margin-top:5px; font-size:12px; opacity:0.8;'>模型评测 / 极限测试</p>
+            <span class='card-emoji'>⚡</span>
+            <h3>Expert</h3>
+            <p class='card-desc'>TECH / LOGIC</p>
         </div>
         """, unsafe_allow_html=True)
         if st.button("我是AI专家", key="btn_expert", use_container_width=True):
             select_role("expert")
 
-# [PAGE 1-10] 答题流程
+# [PAGE 1-10] 答题页
 elif 1 <= st.session_state.step <= 10:
     
+    # 刷新保护
     if not st.session_state.questions:
-        st.warning("⚠️ 页面已刷新，请重新开始。")
+        st.warning("⚠️ Session expired. Please restart.")
         st.session_state.step = 0
-        if st.button("返回首页"): st.rerun()
+        if st.button("Return Home"): st.rerun()
         st.stop()
 
     q_index = st.session_state.step - 1
     current_q = st.session_state.questions[q_index]
     
-    # 顶部进度 (淡蓝)
+    # 极简进度条
     st.progress(st.session_state.step / 10)
-    st.markdown(f"<div style='text-align:right; color:#AAA; font-size:12px; margin-bottom:10px;'>进度: {st.session_state.step}/10</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='text-align:right; color:#CCC; font-size:11px; margin-top:-10px; margin-bottom:30px; font-family:monospace;'>STEP {st.session_state.step} / 10</div>", unsafe_allow_html=True)
     
     st.markdown(f"### {current_q['title']}")
-    st.markdown(f"<p style='color:#666; font-size:16px; margin-bottom:30px;'>{current_q['desc']}</p>", unsafe_allow_html=True)
+    st.markdown(f"<p style='color:#777; font-size:15px; font-weight:300; line-height:1.6; margin-bottom:40px;'>{current_q['desc']}</p>", unsafe_allow_html=True)
+    
+    # --- 组件区 ---
     
     # 1. 图像生成 + A/B
     if current_q['type'] == 'img_gen_ab':
-        uploaded_file = st.file_uploader("📂 上传参考图 (可选)", type=['png', 'jpg'], key=f"up_{q_index}")
-        prompt = st.text_input("✨ 输入 Prompt", placeholder="在此输入你的创意...", key=f"in_{q_index}")
+        uploaded_file = st.file_uploader(" ", type=['png', 'jpg'], key=f"up_{q_index}", label_visibility="collapsed")
+        if uploaded_file: st.caption("✅ 图片已上传")
+        
+        prompt = st.text_input("Prompt", placeholder="Describe what you want to see...", key=f"in_{q_index}", label_visibility="collapsed")
         
         if prompt:
+            st.markdown("<br>", unsafe_allow_html=True)
             if f"gen_done_{q_index}" not in st.session_state:
-                 if st.button("🚀 开始生成", use_container_width=True, key=f"gen_{q_index}"):
-                    with st.spinner('🎨 AI 正在绘制...'):
+                 if st.button("Generate ✨", use_container_width=True, key=f"gen_{q_index}"):
+                    with st.spinner('Dreaming...'):
                         time.sleep(1.5)
                     st.session_state[f"gen_done_{q_index}"] = True
                     st.rerun()
             
             if st.session_state.get(f"gen_done_{q_index}"):
-                st.success("生成完成！请选择：")
+                st.success("Ready.")
                 c1, c2 = st.columns(2)
                 with c1:
-                    st.image("https://placehold.co/400x400/F5F5F5/CCC?text=Model+A", caption="模型 A")
-                    if st.button("❤️ 选 A", key=f"qa_{q_index}", use_container_width=True):
+                    st.image("https://placehold.co/400x400/FAFAFA/DDD?text=Option+A", caption="A")
+                    if st.button("Pick A", key=f"qa_{q_index}", use_container_width=True):
                         st.session_state.answers[f"q{q_index}"] = "Model A"
                         next_step()
                 with c2:
-                    st.image("https://placehold.co/400x400/F5F5F5/CCC?text=Model+B", caption="模型 B")
-                    if st.button("❤️ 选 B", key=f"qb_{q_index}", use_container_width=True):
+                    st.image("https://placehold.co/400x400/FAFAFA/DDD?text=Option+B", caption="B")
+                    if st.button("Pick B", key=f"qb_{q_index}", use_container_width=True):
                         st.session_state.answers[f"q{q_index}"] = "Model B"
                         next_step()
-                if st.button("🤷 都不太行 / 差不多", key=f"tie_{q_index}", use_container_width=True):
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("Can't Decide", key=f"tie_{q_index}", use_container_width=True):
                     st.session_state.answers[f"q{q_index}"] = "Tie"
                     next_step()
 
     # 2. 单选
     elif current_q['type'] == 'choice':
-        choice = st.radio("请选择:", current_q['options'], index=None, key=f"radio_{q_index}")
+        choice = st.radio(" ", current_q['options'], index=None, key=f"radio_{q_index}", label_visibility="collapsed")
         if choice:
             st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("确认提交 ➡️", key=f"btn_c_{q_index}"):
+            if st.button("Continue", key=f"btn_c_{q_index}"):
                 st.session_state.answers[f"q{q_index}"] = choice
                 next_step()
 
     # 3. 文本
     elif current_q['type'] == 'text':
-        txt = st.text_area("✍️ 你的回答:", height=100, key=f"txt_{q_index}")
-        if st.button("提交 ➡️", key=f"btn_t_{q_index}") and txt:
+        txt = st.text_area(" ", height=120, placeholder="Type here...", key=f"txt_{q_index}", label_visibility="collapsed")
+        if st.button("Submit", key=f"btn_t_{q_index}") and txt:
             st.session_state.answers[f"q{q_index}"] = txt
             next_step()
 
     # 4. 滑块
     elif current_q['type'] == 'slider':
-        score = st.slider("拖动滑块打分", 0, 10, 5, key=f"sl_{q_index}")
-        st.markdown(f"<p style='text-align:center; font-weight:bold; color:#2E86C1; font-size:20px;'>{score} 分</p>", unsafe_allow_html=True)
-        if st.button("确认评分 ➡️", key=f"btn_s_{q_index}"):
+        score = st.slider(" ", 0, 10, 5, key=f"sl_{q_index}", label_visibility="collapsed")
+        st.markdown(f"<div style='text-align:center; font-size:24px; font-weight:300; color:#5B86B0; margin: 20px 0;'>{score}</div>", unsafe_allow_html=True)
+        if st.button("Confirm", key=f"btn_s_{q_index}"):
             st.session_state.answers[f"q{q_index}"] = score
             next_step()
 
-    # 5. 静态图AB
+    # 5. 静态AB
     elif current_q['type'] == 'ab_static':
         c1, c2 = st.columns(2)
         with c1:
-            st.image("https://placehold.co/400x300/F5F5F5/CCC?text=Image+A", caption="方案 A")
+            st.image("https://placehold.co/400x300/FAFAFA/DDD?text=A", caption="A")
         with c2:
-            st.image("https://placehold.co/400x300/F5F5F5/CCC?text=Image+B", caption="方案 B")
+            st.image("https://placehold.co/400x300/FAFAFA/DDD?text=B", caption="B")
         
-        sel = st.radio("你的判断是？", ["方案 A 更好", "方案 B 更好", "难以分辨"], key=f"ab_r_{q_index}")
-        if st.button("下一题 ➡️", key=f"btn_ab_{q_index}"):
+        st.markdown("<br>", unsafe_allow_html=True)
+        sel = st.radio(" ", ["Option A", "Option B", "Unsure"], key=f"ab_r_{q_index}", label_visibility="collapsed")
+        if st.button("Next", key=f"btn_ab_{q_index}"):
             st.session_state.answers[f"q{q_index}"] = sel
             next_step()
 
-# [PAGE 11] 结束
+# [PAGE 11] 结束页
 elif st.session_state.step == 11:
     st.balloons()
     st.markdown(f"""
-    <div style='text-align: center; margin-top: 50px;'>
-        <h1 style='color:#2E86C1;'>🎉 感谢你的反馈！</h1>
-        <p style='color:#888;'>你的每一个回答都在帮助模型进化。</p>
-        <div style='background-color:#F0F8FF; padding:30px; border-radius:15px; margin-top:30px; border:1px solid #BBDEFB;'>
-            <h3 style='margin:0; color:#1565C0;'>✅ 身份: {st.session_state.role}</h3>
-            <p style='margin-top:10px; color:#555;'>已完成全部测试</p>
+    <div style='text-align: center; margin-top: 80px;'>
+        <h1 style='color:#5B86B0;'>All Set!</h1>
+        <p style='color:#AAA; margin-top:10px;'>Thank you for your contribution.</p>
+        <div style='margin-top:40px; padding: 20px; background-color: #FAFAFA; border-radius: 12px; display:inline-block;'>
+            <span style='color:#888; font-size:12px;'>ROLE</span><br>
+            <strong style='color:#444;'>{st.session_state.role.upper()}</strong>
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    with st.expander("💾 开发者模式: 查看JSON数据"):
-        st.json(st.session_state.answers)
-    
-    if st.button("🔄 返回首页", use_container_width=True):
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    if st.button("Restart", use_container_width=True):
         st.session_state.clear()
         st.rerun()
